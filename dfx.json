@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "OnChainScore_backend": {
+      "main": "src/OnChainScore_backend/main.mo",
+      "type": "motoko"
+    },
+    "OnChainScore_frontend": {
+      "dependencies": [
+        "OnChainScore_backend"
+      ],
+      "source": [
+        "src/OnChainScore_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "OnChainScore_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
