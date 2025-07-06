@@ -1,7 +1,7 @@
 import { AuthClient } from '@dfinity/auth-client';
 import { Identity } from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
-import DebugLogger from '../utils/debug';
+import { DebugLogger } from '../utils/debug';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -39,14 +39,18 @@ class AuthService {
 
   async login(): Promise<{ success: boolean; identity?: Identity; principal?: Principal }> {
     try {
+      // For local development without Internet Identity, return a mock successful login
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        DebugLogger.log('Auth', 'Mock login for local development');
+        return { success: true };
+      }
+
       const authClient = await this.init();
       
       // Get the correct identity provider URL
-      const identityProvider = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? `http://${window.location.hostname}:4943/?canisterId=rdmx6-jaaaa-aaaah-qcaiq-cai`
-        : 'https://identity.ic0.app';
+      const identityProvider = 'https://identity.ic0.app';
       
-      DebugLogger.auth('Starting login process', { identityProvider });
+      DebugLogger.log('Auth', 'Starting login process', { identityProvider });
       
       return new Promise((resolve) => {
         authClient.login({
@@ -64,7 +68,7 @@ class AuthService {
                 return;
               }
               
-              DebugLogger.success('Auth', 'Authentication successful', {
+              DebugLogger.log('Auth', 'Authentication successful', {
                 principalText: principal.toText(),
                 principalBytes: principal.toUint8Array()
               });
@@ -96,7 +100,7 @@ class AuthService {
       if (this.authClient) {
         await this.authClient.logout();
         this.identity = null;
-        DebugLogger.success('Auth', 'Logout successful');
+        DebugLogger.log('Auth', 'Logout successful');
       }
     } catch (error) {
       DebugLogger.error('Auth', 'Logout failed', error);

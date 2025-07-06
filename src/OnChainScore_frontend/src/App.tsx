@@ -7,6 +7,7 @@ import { Principal } from '@dfinity/principal';
 import { authService } from './services/auth';
 import { scoreService, ScoreData, TransactionData } from './services/scoreService';
 import { icpWalletService, WalletConnection } from './services/icpWallet';
+import { EnhancedScoreData } from './services/enhancedScoring';
 
 // Components
 import DataNebula from './components/DataNebula';
@@ -25,6 +26,10 @@ import RealWalletConnection from './components/RealWalletConnection';
 import UserProfile from './components/UserProfile';
 import TransactionHistory from './components/TransactionHistory';
 import NotificationCenter from './components/NotificationCenter';
+import AIAnalyticsDashboard from './components/AIAnalyticsDashboard';
+import RealTimeScoreMonitor from './components/RealTimeScoreMonitor';
+import PortfolioAnalysis from './components/PortfolioAnalysis';
+import SynchronizationDemo from './components/SynchronizationDemo';
 
 // --- Data Interfaces ---
 interface ScoreFactor {
@@ -135,6 +140,12 @@ function App() {
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
 
+  // --- Enhanced Features State ---
+  const [enhancedScoreData, setEnhancedScoreData] = useState<EnhancedScoreData | null>(null);
+  const [showAIAnalytics, setShowAIAnalytics] = useState<boolean>(false);
+  const [showRealTimeMonitor, setShowRealTimeMonitor] = useState<boolean>(false);
+  const [showPortfolioAnalysis, setShowPortfolioAnalysis] = useState<boolean>(false);
+  
   // --- Advanced Feature States ---
   const [isSimulationMode, setIsSimulationMode] = useState<boolean>(false);
   const [simulatedFactors, setSimulatedFactors] = useState<ScoreFactor[]>([]);
@@ -210,6 +221,11 @@ function App() {
         setDisplayedData(realScoreData);
         setSimulatedFactors([...realScoreData.factors]);
         setSimulatedTotalScore(realScoreData.totalScore);
+
+        // Extract enhanced data if available
+        if (realScoreData.enhancedData) {
+          setEnhancedScoreData(realScoreData.enhancedData);
+        }
 
         // Fetch transaction history
         const realTransactions = await scoreService.getTransactionHistory(principal);
@@ -464,7 +480,7 @@ function App() {
   /**
    * AI analysis for simulation changes
    */
-  const handleAnalyzeSimulation = async (factor: string, value: number) => {
+  const handleAnalyzeSimulation = async (factor: string, _value: number) => {
     setIsAnalyzing(true);
     
     // Simulate API call delay
@@ -706,39 +722,15 @@ Your score is updated in real-time based on your actual blockchain activity.`;
   // Count unread notifications
   const unreadNotifications = notifications.filter(n => !n.isRead).length;
 
-  return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Dynamic Data Nebula Background */}
-      <DataNebula score={currentDisplayData?.totalScore || 500} />
+  // View rendering function
+  const renderCurrentView = () => {
+    if (!isAuthenticated) {
+      return <RealIdentityView onConnect={handleConnect} />;
+    }
 
-      {/* Navigation */}
-      <Navigation
-        currentView={currentView}
-        onViewChange={handleViewChange}
-        notifications={unreadNotifications}
-        isAuthenticated={isAuthenticated}
-      />
-
-      {/* Simulation Mode Banner */}
-      {isSimulationMode && (
-        <div 
-          ref={simulationBannerRef}
-          className={`fixed ${isAuthenticated ? 'top-20' : 'top-0'} left-0 right-0 bg-gradient-to-r from-gold-500/20 to-yellow-500/20 border-b border-gold-400/30 backdrop-blur-lg p-3 z-30`}
-        >
-          <div className="text-center">
-            <span className="text-gold-400 font-semibold">🧪 Simulation Mode Active</span>
-            <span className="text-gray-300 ml-2">• Explore how actions impact your reputation</span>
-          </div>
-        </div>
-      )}
-
-      {/* Main Application Container */}
-      <div ref={mainContainerRef} className="relative z-10">
-        {!isAuthenticated ? (
-          /* Real Identity Connection View */
-          <RealIdentityView onConnect={handleConnect} />
-        ) : (
-          /* Main Score Dashboard */
+    switch (currentView) {
+      case 'dashboard':
+        return (
           <div className={`min-h-screen flex items-center justify-center p-8 ${isAuthenticated ? 'pt-24' : ''}`}>
             {isLoadingScore ? (
               <div className="text-center">
@@ -782,44 +774,19 @@ Your score is updated in real-time based on your actual blockchain activity.`;
                     OnChain<span className="text-blue-400">Score</span>
                   </h1>
                   <p className="text-gray-300">
-                    Principal: <span className="font-mono text-sm">{principalId?.toString().slice(0, 12)}...</span>
+                    Your Current Score: <span className="text-blue-400 font-bold">{currentDisplayData.totalScore}</span>
                   </p>
-                  <div className="mt-4 bg-black/40 backdrop-blur-2xl border border-white/20 rounded-2xl px-6 py-3 neuro-glass">
-                    <div className="text-3xl font-bold text-white">
-                      {currentDisplayData.totalScore}
-                      {isSimulationMode && (
-                        <span className="text-gold-400 text-lg ml-2">(Simulated)</span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-300">
-                      Loan Eligibility: {currentDisplayData.loanEligibility.toLocaleString()} ICP
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      Last Updated: {currentDisplayData.lastUpdated.toLocaleDateString()}
-                    </div>
-                  </div>
-                  
-                  {/* Simulation Toggle */}
-                  <div className="mt-4 flex items-center justify-center space-x-3">
-                    <span className="text-gray-400 text-sm">Simulation Mode</span>
-                    <button
-                      onClick={handleToggleSimulation}
-                      className={`relative w-12 h-6 rounded-full transition-all duration-300 ${
-                        isSimulationMode ? 'bg-gold-500' : 'bg-gray-600'
-                      }`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${
-                        isSimulationMode ? 'translate-x-7' : 'translate-x-1'
-                      }`} />
-                    </button>
-                    
-                    <button
-                      onClick={() => setShowTimeline(!showTimeline)}
-                      className="ml-4 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-lg text-blue-400 text-sm hover:bg-blue-500/30 transition-all duration-200"
-                    >
-                      {showTimeline ? 'Hide' : 'Show'} Timeline
-                    </button>
-                  </div>
+                  {currentDisplayData.enhancedData && (
+                    <p className="text-sm text-gray-400 mt-1">
+                      Confidence: {currentDisplayData.enhancedData.confidenceLevel}% | 
+                      Risk: {currentDisplayData.enhancedData.riskProfile.riskLevel}
+                    </p>
+                  )}
+                  {isSimulationMode && (
+                    <p className="text-yellow-400 text-sm mt-2">
+                      🔮 Simulation Mode Active
+                    </p>
+                  )}
                 </div>
 
                 {/* Enhanced Action Hub */}
@@ -843,8 +810,270 @@ Your score is updated in real-time based on your actual blockchain activity.`;
               </div>
             )}
           </div>
-        )}
+        );
+
+      case 'profile':
+        return (
+          <div className="pt-24 min-h-screen">
+            <div className="container mx-auto px-4 py-8">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold text-white mb-8">User Profile</h1>
+                {principalId ? (
+                  <UserProfile 
+                    isOpen={true}
+                    onClose={() => setCurrentView('dashboard')}
+                    userData={{
+                      principal: principalId.toText(),
+                      username: 'OnChain User',
+                      joinDate: new Date().toISOString(),
+                      totalScore: currentDisplayData?.totalScore || 0,
+                      rank: 1,
+                      totalUsers: 1000,
+                      achievements: [],
+                      wallets: connectedWallets.map(w => ({
+                        type: w.type,
+                        name: w.name,
+                        balance: w.balance,
+                        isConnected: w.isConnected
+                      })),
+                      stats: {
+                        totalTransactions: transactions.length,
+                        totalVolume: transactions.reduce((sum, t) => sum + t.amount, 0),
+                        daysActive: 30,
+                        protocolsUsed: 5
+                      }
+                    }}
+                    onUpdateProfile={(data) => console.log('Profile updated:', data)}
+                  />
+                ) : (
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 text-center">
+                    <p className="text-white text-lg">Please connect your wallet to view your profile</p>
+                    <button
+                      onClick={() => setCurrentView('wallets')}
+                      className="mt-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                    >
+                      Connect Wallet
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'history':
+        return (
+          <div className="pt-24 min-h-screen">
+            <div className="container mx-auto px-4 py-8">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold text-white mb-8">Transaction History</h1>
+                <TransactionHistory 
+                  isOpen={true}
+                  onClose={() => setCurrentView('dashboard')}
+                  transactions={transactions.map(t => ({
+                    id: t.id,
+                    type: t.type as any,
+                    amount: t.amount,
+                    token: t.token,
+                    counterparty: t.counterparty,
+                    protocol: t.protocol,
+                    timestamp: t.timestamp.toISOString(),
+                    status: t.status as any,
+                    txHash: t.txHash,
+                    scoreImpact: t.scoreImpact,
+                    description: t.description
+                  }))}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'wallets':
+        return (
+          <div className="pt-24 min-h-screen">
+            <div className="container mx-auto px-4 py-8">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold text-white mb-8">Wallet Connections</h1>
+                <RealWalletConnection
+                  isOpen={true}
+                  onClose={() => setCurrentView('dashboard')}
+                  onWalletConnect={(wallet) => {
+                    setConnectedWallets(prev => [...prev, wallet]);
+                    setIsAuthenticated(true);
+                  }}
+                  connectedWallets={connectedWallets}
+                  currentIdentity={currentIdentity}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'sync-demo':
+        return (
+          <div className="pt-24 min-h-screen">
+            <SynchronizationDemo />
+          </div>
+        );
+
+      case 'settings':
+        return (
+          <div className="pt-24 min-h-screen p-8">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
+              <div className="bg-gray-900 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-white mb-4">Application Settings</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Simulation Mode</span>
+                    <button
+                      onClick={() => setIsSimulationMode(!isSimulationMode)}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        isSimulationMode 
+                          ? 'bg-yellow-500 text-black' 
+                          : 'bg-gray-700 text-white'
+                      }`}
+                    >
+                      {isSimulationMode ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-300">Real-time Updates</span>
+                    <button className="px-4 py-2 bg-green-500 text-white rounded-lg">
+                      Enabled
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return renderCurrentView(); // Fallback to dashboard
+    }
+  };
+
+  return (
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Dynamic Data Nebula Background */}
+      <DataNebula score={currentDisplayData?.totalScore || 500} />
+
+      {/* Navigation */}
+      <Navigation
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        notifications={unreadNotifications}
+        isAuthenticated={isAuthenticated}
+      />
+
+      {/* Simulation Mode Banner */}
+      {isSimulationMode && (
+        <div 
+          ref={simulationBannerRef}
+          className={`fixed ${isAuthenticated ? 'top-20' : 'top-0'} left-0 right-0 bg-gradient-to-r from-gold-500/20 to-yellow-500/20 border-b border-gold-400/30 backdrop-blur-lg p-3 z-30`}
+        >
+          <div className="text-center">
+            <span className="text-gold-400 font-semibold">🧪 Simulation Mode Active</span>
+            <span className="text-gray-300 ml-2">• Explore how actions impact your reputation</span>
+          </div>
+        </div>
+      )}
+
+      {/* Main Application Container */}
+      <div ref={mainContainerRef} className="relative z-10">
+        {renderCurrentView()}
       </div>
+
+      {/* Enhanced AI Components */}
+      {showAIAnalytics && enhancedScoreData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-2xl font-bold text-white">AI Analytics Dashboard</h2>
+              <button
+                onClick={() => setShowAIAnalytics(false)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <AIAnalyticsDashboard 
+                enhancedData={enhancedScoreData} 
+                principal={principalId!}
+                onRecommendationClick={(rec) => {
+                  setModalContent({
+                    title: rec.action,
+                    content: `Expected Impact: +${rec.expectedImpact} points\nTimeframe: ${rec.timeframe}\nDifficulty: ${rec.difficulty}\n\nSteps:\n${rec.detailedSteps.join('\n')}`
+                  });
+                  setIsModalOpen(true);
+                  setShowAIAnalytics(false);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRealTimeMonitor && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-2xl font-bold text-white">Real-Time Score Monitor</h2>
+              <button
+                onClick={() => setShowRealTimeMonitor(false)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <RealTimeScoreMonitor 
+                principal={principalId!}
+                onScoreUpdate={(data) => {
+                  setEnhancedScoreData(data);
+                  // Update the displayed score data
+                  if (scoreData) {
+                    const updatedScoreData = {
+                      ...scoreData,
+                      totalScore: data.totalScore,
+                      enhancedData: data,
+                      confidenceLevel: data.confidenceLevel
+                    };
+                    setScoreData(updatedScoreData);
+                    setDisplayedData(updatedScoreData);
+                  }
+                }}
+                isActive={isAuthenticated}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPortfolioAnalysis && enhancedScoreData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-2xl font-bold text-white">Multi-Protocol Portfolio Analysis</h2>
+              <button
+                onClick={() => setShowPortfolioAnalysis(false)}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <PortfolioAnalysis 
+                enhancedData={enhancedScoreData} 
+                principal={principalId!}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Score Factor Detail Panel (only in normal mode) */}
       {!isSimulationMode && (
@@ -913,7 +1142,10 @@ Your score is updated in real-time based on your actual blockchain activity.`;
       <TransactionHistory
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        transactions={transactions}
+        transactions={transactions.map(tx => ({
+          ...tx,
+          timestamp: tx.timestamp.toISOString()
+        }))}
       />
 
       {/* Notification Center */}
@@ -935,7 +1167,7 @@ Your score is updated in real-time based on your actual blockchain activity.`;
       />
 
       {/* Custom CSS for animations and styling */}
-      <style jsx>{`
+      <style>{`
         @keyframes dataFlow {
           0% { opacity: 0; transform: translateY(-20px); }
           50% { opacity: 1; }

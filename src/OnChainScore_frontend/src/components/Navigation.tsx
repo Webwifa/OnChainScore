@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { gsap } from 'gsap';
-import { Home, User, History, Wallet, Settings, Bell, Search, Menu, X } from 'lucide-react';
+import { Home, User, History, Wallet, Settings, Bell, Search, Menu, X, Activity } from 'lucide-react';
 
 interface NavigationProps {
   currentView: string;
@@ -63,6 +63,7 @@ const Navigation: React.FC<NavigationProps> = ({
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'history', label: 'History', icon: History },
     { id: 'wallets', label: 'Wallets', icon: Wallet },
+    { id: 'sync-demo', label: 'Sync Demo', icon: Activity },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 

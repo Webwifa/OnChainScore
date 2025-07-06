@@ -78,5 +78,3 @@ window.addEventListener('error', (event) => {
     error: event.error
   });
 });
-
-export default DebugLogger;
